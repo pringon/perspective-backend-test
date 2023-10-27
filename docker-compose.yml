@@ -1,0 +1,50 @@
+version: '3'
+services:
+    api:
+        container_name: api
+        depends_on:
+            - postgres
+            - migrator
+        environment:
+            - PORT=3111
+            - PG_HOST=postgres
+            - PG_PORT=5432
+            - PG_USER=postgres
+            - PG_PASSWORD=postgres
+        build: .
+        command: npm run dev:api
+        ports:
+            - 3111:3111
+        volumes:
+            - ./:/opt/server
+    postgres:
+        container_name: postgres
+        image: postgres
+        environment:
+            - POSTGRES_PASSWORD=postgres
+        ports:
+            - 5432:5432
+        volumes:
+            - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    migrator:
+        container_name: migrator
+        depends_on:
+            - postgres
+        build: .
+        command: npm run migrate
+        volumes:
+            - ./:/opt/server
+    pgadmin:
+        image: dpage/pgadmin4:latest
+        restart: always
+        logging:
+            driver: none
+        environment:
+            PGADMIN_DEFAULT_EMAIL: postgres@postgres.com
+            PGADMIN_DEFAULT_PASSWORD: postgres
+            PGADMIN_LISTEN_PORT: 80
+            GUNICORN_ACCESS_LOGFILE: '/dev/null'
+        ports:
+            - '8080:80'
+        links:
+            - 'postgres:pgsql-server'
