@@ -1,22 +1,24 @@
-import express, {Express, Request, Response} from 'express';
 import * as dotenv from 'dotenv';
-import cors from 'cors';
+import { DataSource } from 'typeorm';
+
+import { makeConfig } from './config';
+import { makeApi } from './api';
+import { makeRepository } from './repository';
 
 dotenv.config();
 
-const app: Express = express();
-app.use(cors())
-  .use(express.json())
-  .options('*', cors());
+const conf = makeConfig();
+const ds = new DataSource(conf.database);
 
-app.post('/users', (req: Request, res: Response) => {
-  res.send({}).status(201);
-});
-app.get('/users', (req: Request, res: Response) => {
-  res.send([]).status(200);
-});
+// TODO: Validation pipeline.
+// TODO: IaC and deployment pipeline.
+(async () => {
+    await ds.initialize();
+    const userRepo = makeRepository(ds);
+    const app = makeApi(userRepo);
 
-const port = process.env.PORT || 3111;
-app.listen(port, () => {
-  console.log(`[server]: Server is running at http://localhost:${port}`);
-});
+    const port = conf.api.port;
+    app.listen(port, () => {
+        console.log(`[server]: Server is running at http://localhost:${port}`);
+    });
+})();
